@@ -104,6 +104,8 @@ class GravityLayout(object):
         'bottom-left': (0.0, 1.0),
         'bottom': (0.5, 1.0),
         'bottom-right': (1.0, 1.0),
+        'top-portrait': (0.0, 0.0),
+        'bottom-portrait': (0.0, 1.0),
     }
 
     def __call__(self, w, h, gravity='top-left', x=None, y=None):
@@ -136,6 +138,8 @@ POSITIONS = {
 
 for grav in ('top', 'bottom'):
     POSITIONS[grav] = [gv(x, 0.5, grav) for x in (1.0, col, col * 2)]
+for grav in ('top-portrait', 'bottom-portrait'):
+    POSITIONS[grav] = [gv(1.0, x, grav) for x in (0.5, col, col * 2)]
 for grav in ('left', 'right'):
     POSITIONS[grav] = [gv(x, 1, grav) for x in (0.5, col, col * 2)]
 for grav in ('top-left', 'top-right', 'bottom-left', 'bottom-right'):
@@ -360,7 +364,7 @@ class CommandRegistry(object):
 
                 monitor_id, monitor_geom = wm.get_monitor(window)
 
-                use_area, use_rect = wm.get_workarea(monitor_geom,
+                use_area, use_rect, orientation = wm.get_workarea(monitor_geom,
                                                      wm.ignore_workarea)
 
                 # TODO: Replace this MPlayer safety hack with a properly
@@ -377,6 +381,7 @@ class CommandRegistry(object):
                     "monitor_geom": monitor_geom,
                     "usable_region": use_area,
                     "usable_rect": use_rect,
+                    "orientation": orientation,
                 }
 
                 args, kwargs = p_args + args, dict(p_kwargs, **kwargs)
@@ -554,10 +559,11 @@ class WindowManager(object):
         if not usable_region.get_rectangles():
             logging.error("get_workarea received an empty monitor region!")
 
+        orientation = 'landscape' if usable_rect.height <= usable_rect.width else 'portrait'
         if ignore_struts:
             logging.debug("Panels ignored. Reported monitor geometry is:\n%s",
                           usable_rect)
-            return usable_region, usable_rect
+            return usable_region, usable_rect, orientation
 
         rootWin = self.gdk_screen.get_root_window()
 
@@ -612,7 +618,7 @@ class WindowManager(object):
         logging.debug("Usable region of monitor calculated as:\n"
                       "\tRegion: %r\n\tRectangle: %r",
                       usable_region.get_rectangles(), usable_rect)
-        return usable_region, usable_rect
+        return usable_region, usable_rect, orientation
 
     def get_workspace(self, window=None, direction=None):
         """Get a workspace relative to either a window or the active one.
@@ -983,6 +989,11 @@ def cycle_dimensions(wm, win, state, *dimensions):
     clip_box = usable_region.get_clipbox()
 
     logging.debug("Selected preset sequence:\n\t%r", dimensions)
+
+    # Override the dimensions if the monitor is portrait and the 'top'
+    # or 'bottom' command is called
+    if state['orientation'] == 'portrait' and state['cmd_name'] in ('top', 'bottom'):
+        dimensions = POSITIONS[state['cmd_name'] + '-portrait']
 
     # Resolve proportional (eg. 0.5) and preserved (None) coordinates
     dims = []
