@@ -105,6 +105,7 @@ class GravityLayout(object):
         'bottom': (0.5, 1.0),
         'bottom-right': (1.0, 1.0),
         'top-portrait': (0.0, 0.0),
+        'middle-portrait': (0.5, 0.5),
         'bottom-portrait': (0.0, 1.0),
     }
 
@@ -138,7 +139,7 @@ POSITIONS = {
 
 for grav in ('top', 'bottom'):
     POSITIONS[grav] = [gv(x, 0.5, grav) for x in (1.0, col, col * 2)]
-for grav in ('top-portrait', 'bottom-portrait'):
+for grav in ('top-portrait', 'middle-portrait', 'bottom-portrait'):
     POSITIONS[grav] = [gv(1.0, x, grav) for x in (0.5, col, col * 2)]
 for grav in ('left', 'right'):
     POSITIONS[grav] = [gv(x, 1, grav) for x in (0.5, col, col * 2)]
@@ -990,9 +991,9 @@ def cycle_dimensions(wm, win, state, *dimensions):
 
     logging.debug("Selected preset sequence:\n\t%r", dimensions)
 
-    # Override the dimensions if the monitor is portrait and the 'top'
-    # or 'bottom' command is called
-    if state['orientation'] == 'portrait' and state['cmd_name'] in ('top', 'bottom'):
+    # Override the dimensions if the monitor is portrait and the 'top',
+    # 'middle' or 'bottom' command is called
+    if state['orientation'] == 'portrait' and state['cmd_name'] in ('top', 'middle', 'bottom'):
         dimensions = POSITIONS[state['cmd_name'] + '-portrait']
 
     # Resolve proportional (eg. 0.5) and preserved (None) coordinates
